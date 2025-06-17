@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Shop Management</title>
+</head>
+<body>
+  <h1>Shop Management Frontend</h1>
+
+  
+  <section>
+    <h2>Add Product</h2>
+    <form onsubmit="event.preventDefault(); addProduct();">
+      <label>ID: <input id="add-id" type="number" required /></label><br />
+      <label>Name: <input id="add-name" type="text" required /></label><br />
+      <label>Category:
+        <select id="add-category" required>
+          <option value="">Select Category</option>
+          <option value="BEAUTY_CARE">Beauty Care</option>
+          <option value="VEGETABLES">Vegetables</option>
+          <option value="MEAT">Meat</option>
+          <option value="GROCERIES">Groceries</option>
+          <option value="OTHERS">Others</option>
+        </select>
+      </label><br />
+      <label>Price: <input id="add-price" type="number" step="0.01" required /></label><br />
+      <label>Quantity: <input id="add-quantity" type="number" required /></label><br />
+      <label>Expiry Date: <input id="add-expiryDate" type="date" /></label><br />
+      <button type="submit">Add Product</button>
+    </form>
+  </section>
+
+ 
+  <section>
+    <h2>Add Products in Bulk (JSON)</h2>
+    <textarea id="bulk-products" rows="5" cols="50" placeholder='[{"id":1,"name":"Milk",...}]'></textarea><br />
+    <button onclick="addProductsBulk()">Add Bulk</button>
+  </section>
+
+ 
+  <section>
+    <h2>Update Product</h2>
+    <form onsubmit="event.preventDefault(); updateProduct();">
+      <label>ID: <input id="update-id" type="number" required /></label><br />
+      <label>Name: <input id="update-name" type="text" /></label><br />
+      <label>Category:
+        <select id="update-category">
+          <option value="">Select Category</option>
+          <option value="BEAUTY_CARE">Beauty Care</option>
+          <option value="VEGETABLES">Vegetables</option>
+          <option value="MEAT">Meat</option>
+          <option value="GROCERIES">Groceries</option>
+          <option value="OTHERS">Others</option>
+        </select>
+      </label><br />
+      <label>Price: <input id="update-price" type="number" step="0.01" /></label><br />
+      <label>Quantity: <input id="update-quantity" type="number" /></label><br />
+      <label>Expiry Date: <input id="update-expiryDate" type="date" /></label><br />
+      <button type="submit">Update Product</button>
+    </form>
+  </section>
+
+  
+  <section>
+    <h2>Delete Product</h2>
+    <label>ID: <input id="delete-id" type="number" /></label>
+    <button onclick="deleteProduct()">Delete</button>
+  </section>
+
+ 
+  <section>
+    <h2>Find Product</h2>
+    <label>ID: <input id="find-id" type="number" /></label>
+    <button onclick="findProductById()">Find</button>
+  </section>
+
+  
+  <section>
+    <h2>Fetch Products</h2>
+    <button onclick="fetchAllProducts()">All</button>
+    <button onclick="fetchExpiringProducts()">Expiring in 7 Days</button>
+    <button onclick="fetchProductsByDiscounts()">By Category With Discounts</button>
+    <button onclick="fetchTotalValueByCategory()">Total Value By Category</button>
+  </section>
+
+
+  <pre id="output"></pre>
+
+  
+  <script>
+    const API_BASE = "http://localhost:8081/shop";
+
+    function getInput(id) {
+      return document.getElementById(id).value;
+    }
+
+    function setOutput(data) {
+      document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function addProduct() {
+      const product = {
+        id: +getInput("add-id"),
+        name: getInput("add-name"),
+        category: getInput("add-category"),
+        price: +getInput("add-price"),
+        quantity: +getInput("add-quantity"),
+        expiryDate: getInput("add-expiryDate") || null,
+      };
+      const res = await fetch(`${API_BASE}/products`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(product),
+      });
+      setOutput(await res.text());
+    }
+
+    async function addProductsBulk() {
+      const text = getInput("bulk-products");
+      try {
+        const products = JSON.parse(text);
+        const res = await fetch(`${API_BASE}/products/bulk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(products),
+        });
+        setOutput(await res.text());
+      } catch (err) {
+        alert("Invalid JSON");
+      }
+    }
+
+    async function updateProduct() {
+      const id = +getInput("update-id");
+      const product = {
+        id,
+        name: getInput("update-name"),
+        category: getInput("update-category"),
+        price: parseFloat(getInput("update-price")),
+        quantity: parseInt(getInput("update-quantity")),
+        expiryDate: getInput("update-expiryDate") || null,
+      };
+      const res = await fetch(`${API_BASE}/products/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(product),
+      });
+      setOutput(await res.text());
+    }
+
+    async function deleteProduct() {
+      const id = +getInput("delete-id");
+      const res = await fetch(`${API_BASE}/products/${id}`, { method: "DELETE" });
+      setOutput(await res.text());
+    }
+
+    async function findProductById() {
+      const id = +getInput("find-id");
+      const res = await fetch(`${API_BASE}/products/${id}`);
+      if (res.status === 404) {
+        setOutput("Product not found");
+      } else {
+        setOutput(await res.json());
+      }
+    }
+
+    async function fetchAllProducts() {
+      const res = await fetch(`${API_BASE}/products`);
+      setOutput(await res.json());
+    }
+
+    async function fetchExpiringProducts() {
+      const res = await fetch(`${API_BASE}/products/expiring`);
+      setOutput(await res.json());
+    }
+
+    async function fetchProductsByDiscounts() {
+      const res = await fetch(`${API_BASE}/reports/discounts`);
+      setOutput(await res.json());
+    }
+
+    async function fetchTotalValueByCategory() {
+      const res = await fetch(`${API_BASE}/reports/value`);
+      setOutput(await res.json());
+    }
+  </script>
+</body>
+</html>
